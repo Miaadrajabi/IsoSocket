@@ -5,10 +5,4 @@ before_install:
   - ./gradlew clean
 
 install:
-  - ./gradlew build -x test
-
-before_script:
   - ./gradlew assembleRelease
-
-script:
-  - ./gradlew publishToMavenLocal
