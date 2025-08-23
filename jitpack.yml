@@ -1,0 +1,5 @@
+jdk:
+  - openjdk17
+
+install:
+  - ./gradlew -Pgroup=com.github.Miaadrajabi -Pversion=${VERSION} :app:publishReleasePublicationToMavenLocal
