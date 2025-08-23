@@ -1,5 +1,6 @@
 plugins {
     id 'com.android.library'
+    id 'maven-publish'
 }
 
 android {
@@ -34,4 +35,18 @@ dependencies {
     testImplementation libs.junit
     androidTestImplementation libs.ext.junit
     androidTestImplementation libs.espresso.core
+}
+
+afterEvaluate {
+    publishing {
+        publications {
+            release(MavenPublication) {
+                from components.getByName("release")
+
+                groupId = 'com.github.Miaadrajabi'
+                artifactId = 'IsoSocket'
+                version = '1.0.3'
+            }
+        }
+    }
 }
