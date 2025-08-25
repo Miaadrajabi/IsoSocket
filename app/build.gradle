@@ -1,15 +1,13 @@
-plugins {
-    id 'com.android.library'
-    id 'maven-publish'
-}
+apply plugin: 'com.android.library'
+apply plugin: 'maven-publish'
 
 android {
     namespace 'com.miaad.isosocket'
-    compileSdk 34
+    compileSdk 33
 
     defaultConfig {
         minSdk 21
-        targetSdk 34
+        targetSdk 33
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles "consumer-rules.pro"
@@ -22,26 +20,19 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_11
-        targetCompatibility JavaVersion.VERSION_11
-    }
-
-    // Ensure AGP creates a 'release' component for maven-publish
-    publishing {
-        singleVariant("release") {
-            withSourcesJar()
-        }
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
     }
 }
 
-dependencies {
-    coreLibraryDesugaring libs.desugar.jdk.libs
+// Provide sources JAR in AGP 4.2.x
+task androidSourcesJar(type: Jar) {
+    archiveClassifier.set('sources')
+    from android.sourceSets.main.java.srcDirs
+}
 
-    implementation libs.appcompat
-    implementation libs.material
-    testImplementation libs.junit
-    androidTestImplementation libs.ext.junit
-    androidTestImplementation libs.espresso.core
+dependencies {
+    compileOnly 'androidx.annotation:annotation:1.6.0'
 }
 
 // Configure Maven publication for JitPack
@@ -50,6 +41,7 @@ afterEvaluate {
         publications {
             release(MavenPublication) {
                 from components.release
+                artifact androidSourcesJar
 
                 groupId = project.findProperty('group') ?: 'com.github.Miaadrajabi'
                 artifactId = 'IsoSocket'

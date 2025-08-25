@@ -5,7 +5,6 @@
 package com.miaad.isosocket;
 
 import android.os.Handler;
-import androidx.annotation.Nullable;
 
 import com.miaad.isosocket.framing.Framer;
 import com.miaad.isosocket.state.ConnectionState;
@@ -14,9 +13,8 @@ import com.miaad.isosocket.state.StateListener;
 import com.miaad.isosocket.state.StateManager;
 import com.miaad.isosocket.state.TrafficEvent;
 import com.miaad.isosocket.tls.TlsOptions;
-import com.miaad.isosocket.util.Backoff;
 import com.miaad.isosocket.util.Logger;
-
+import com.miaad.isosocket.util.Backoff;
 import java.io.IOException;
 import java.util.Objects;
 import java.util.Set;
@@ -228,8 +226,8 @@ public final class TcpClient implements AutoCloseable {
     public boolean isClosed() { return closed.get(); }
     public boolean isDisconnected() { return !isReady() && !isClosed(); }
     public ConnectionState getState() { return isReady() ? ConnectionState.READY : (isClosed() ? ConnectionState.CLOSED : ConnectionState.DISCONNECTED); }
-    @Nullable public Long getLastConnectTimeMs() { return lastConnectEpochMs; }
-    @Nullable public Long getLastDisconnectTimeMs() { return lastDisconnectEpochMs; }
+    public Long getLastConnectTimeMs() { return lastConnectEpochMs; }
+    public Long getLastDisconnectTimeMs() { return lastDisconnectEpochMs; }
 
     private void ensureOpen() {
         if (closed.get()) throw new IllegalStateException("Client closed");

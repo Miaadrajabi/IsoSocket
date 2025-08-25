@@ -29,7 +29,6 @@ import com.miaad.isosocket.state.ConnectionState;
 import com.miaad.isosocket.state.StateInfo;
 import com.miaad.isosocket.state.StateListener;
 import com.miaad.isosocket.state.TrafficEvent;
-import com.miaad.isosocket.util.Logger;
 import com.miaad.isosocket.util.Loggers;
 
 import java.io.IOException;
@@ -116,7 +115,7 @@ public class MainActivity extends AppCompatActivity {
                 // Retry policy: exactly three attempts with jittered backoff
                 .autoReconnect(true)
                 .connectRetryEnabled(true)
-                .connectMaxRetries(3)
+                .connectMaxRetries(5)
                 .connectInitialBackoffMs(500)
                 .connectMaxBackoffMs(5000)
                 .connectJitterFactor(0.2f)
@@ -124,7 +123,9 @@ public class MainActivity extends AppCompatActivity {
                         ConnectError.TIMEOUT,
                         ConnectError.CONNECTION_REFUSED,
                         ConnectError.NETWORK_UNREACHABLE,
-                        ConnectError.HANDSHAKE_TIMEOUT
+                        ConnectError.HANDSHAKE_TIMEOUT,
+                        ConnectError.DNS,
+                        ConnectError.UNKNOWN
                 )))
 
                 // TLS (disabled by default here; enable for secure endpoints)
@@ -139,14 +140,15 @@ public class MainActivity extends AppCompatActivity {
                 .logger(Loggers.androidTag("IsoSocket" , INFO))
                 .stateListener(new UiStateListener())
                 .mainThreadHandler(main)
-
                 .build();
-        try {
-            client.connect();
-            append("connect() returned\n");
-        } catch (Exception e) {
-            append("connect error: " + e + "\n");
-        }
+        new Thread(() -> {
+            try {
+                client.connect();
+                runOnUiThread(() -> append("connect() returned\n"));
+            } catch (Exception e) {
+                runOnUiThread(() -> append("connect error: " + e + "\n"));
+            }
+        }).start();
     }
 
     /**
