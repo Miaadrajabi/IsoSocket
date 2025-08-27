@@ -154,9 +154,24 @@ public class NonBlockingEngine implements ConnectionEngine {
                         long hostResolveTime = tcpConnectStart - hostResolveStart;
                         stateListener.onHostResolutionCompleted(config.getHost(), 
                             address.getAddress().getHostAddress(), hostResolveTime);
-                        stateListener.onTcpConnectionCompleted(
-                            channel.getLocalAddress().toString(),
-                            channel.getRemoteAddress().toString(), tcpConnectTime);
+                        
+                        // Use socket() method for API 21+ compatibility
+                        String localAddress = "N/A";
+                        String remoteAddress = "N/A";
+                        try {
+                            if (channel.socket() != null) {
+                                if (channel.socket().getLocalAddress() != null) {
+                                    localAddress = channel.socket().getLocalAddress().toString();
+                                }
+                                if (channel.socket().getInetAddress() != null) {
+                                    remoteAddress = channel.socket().getInetAddress().toString();
+                                }
+                            }
+                        } catch (Exception e) {
+                            // Ignore address resolution errors
+                        }
+                        
+                        stateListener.onTcpConnectionCompleted(localAddress, remoteAddress, tcpConnectTime);
                     }
                     
                     System.out.println("NIO Connected successfully!");
@@ -419,11 +434,14 @@ public class NonBlockingEngine implements ConnectionEngine {
                 builder.readable(true) // NIO channels are generally readable if open
                        .writable(true); // NIO channels are generally writable if open
                 
-                if (channel.getLocalAddress() != null) {
-                    builder.localAddress(channel.getLocalAddress().toString());
-                }
-                if (channel.getRemoteAddress() != null) {
-                    builder.remoteAddress(channel.getRemoteAddress().toString());
+                // Use socket() method for API 21+ compatibility
+                if (channel.socket() != null) {
+                    if (channel.socket().getLocalAddress() != null) {
+                        builder.localAddress(channel.socket().getLocalAddress().toString());
+                    }
+                    if (channel.socket().getInetAddress() != null) {
+                        builder.remoteAddress(channel.socket().getInetAddress().toString());
+                    }
                 }
             } catch (Exception e) {
                 // Channel might be in invalid state
