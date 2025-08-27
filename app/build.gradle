@@ -2,7 +2,7 @@ apply plugin: 'com.android.library'
 apply plugin: 'maven-publish'
 
 android {
-    namespace 'com.miaad.isosocket'
+    namespace 'com.miaad.iso8583TCPSocket'
     compileSdk 33
 
     defaultConfig {
@@ -44,7 +44,7 @@ afterEvaluate {
                 artifact androidSourcesJar
 
                 groupId = project.findProperty('group') ?: 'com.github.Miaadrajabi'
-                artifactId = 'IsoSocket'
+                artifactId = 'iso8583TCPSocket'
                 version = project.findProperty('version') ?: '1.0.0-SNAPSHOT'
             }
         }

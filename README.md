@@ -1,6 +1,6 @@
-# IsoSocket
+# iso8583TCPSocket
 
-A lightweight, high-performance TCP socket library for Android with support for both blocking and non-blocking I/O, TLS encryption, and automatic reconnection.
+A lightweight, high-performance ISO-8583 TCP socket library for Android with support for both blocking and non-blocking I/O, TLS encryption, and automatic reconnection.
 
 ## Features
 
@@ -20,7 +20,7 @@ Add the following to your `build.gradle` file:
 
 ```gradle
 dependencies {
-    implementation 'com.github.Miaadrajabi:IsoSocket:1.0.0'
+    implementation 'com.github.Miaadrajabi:iso8583TCPSocket:1.0.0'
 }
 ```
 
@@ -29,7 +29,7 @@ dependencies {
 ```xml
 <dependency>
     <groupId>com.github.Miaadrajabi</groupId>
-    <artifactId>IsoSocket</artifactId>
+    <artifactId>iso8583TCPSocket</artifactId>
     <version>1.0.0</version>
 </dependency>
 ```

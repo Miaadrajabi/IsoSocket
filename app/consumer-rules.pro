@@ -21,5 +21,5 @@
 #-renamesourcefileattribute SourceFile
 
 # Keep IsoSocket classes
--keep class com.miaad.isosocket.** { *; }
--keep interface com.miaad.isosocket.** { *; }
+-keep class com.miaad.iso8583TCPSocket.** { *; }
+-keep interface com.miaad.iso8583TCPSocket.** { *; }
