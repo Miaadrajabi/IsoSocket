@@ -18,7 +18,19 @@ A lightweight, high-performance ISO-8583 TCP socket library for Android with com
 
 ### Gradle
 
-Add the following to your `build.gradle` file:
+Add the JitPack repository to your project's `build.gradle` file:
+
+```gradle
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+        maven { url 'https://jitpack.io' }
+    }
+}
+```
+
+Then add the dependency to your app's `build.gradle`:
 
 ```gradle
 dependencies {
@@ -326,7 +338,7 @@ com.miaad.iso8583TCPSocket/
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
 
 ## 🆘 Support
 
