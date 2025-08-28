@@ -22,7 +22,7 @@ Add the dependency to your app's `build.gradle`:
 
 ```gradle
 dependencies {
-    implementation 'com.github.Miaadrajabi:iso8583TCPSocket:1.0.0'
+    implementation 'com.github.Miaadrajabi:iso8583TCPSocketClient:1.0.0'
 }
 ```
 
@@ -169,11 +169,8 @@ public class StatusMonitoringExample {
 
 ```gradle
 // ✅ Correct
-implementation 'com.github.Miaadrajabi:iso8583TCPSocket:1.0.0'
+implementation 'com.github.Miaadrajabi:iso8583TCPSocketClient:1.0.0'
 
-// ❌ Wrong
-implementation 'com.github.Miaadrajabi:IsoSocket:1.0.0'
-```
 
 ## Available Features
 

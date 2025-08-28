@@ -34,7 +34,7 @@ Then add the dependency to your app's `build.gradle`:
 
 ```gradle
 dependencies {
-    implementation 'com.github.Miaadrajabi:iso8583TCPSocket:1.0.0'
+    implementation 'com.github.Miaadrajabi:iso8583TCPSocketClient:1.0.0'
 }
 ```
 
@@ -43,7 +43,7 @@ dependencies {
 ```xml
 <dependency>
     <groupId>com.github.Miaadrajabi</groupId>
-    <artifactId>iso8583TCPSocket</artifactId>
+    <artifactId>iso8583TCPSocketClient</artifactId>
     <version>1.0.0</version>
 </dependency>
 ```
