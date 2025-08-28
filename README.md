@@ -317,7 +317,7 @@ com.miaad.iso8583TCPSocket/
 
 ## 🔄 Version History
 
-### v1.0.0 (Latest)
+### v1.0.0 (Latest) - 2025-08-28
 - **🎉 Initial Release**: Complete ISO-8583 TCP client library
 - **🔧 Dual Engine Support**: Blocking and non-blocking I/O engines
 - **📊 40+ Status Methods**: Comprehensive status checking
@@ -327,6 +327,8 @@ com.miaad.iso8583TCPSocket/
 - **📱 API 21+ Support**: Android 5.0 and above compatibility
 - **🧪 Sample App**: Comprehensive testing application
 - **🐍 Test Server**: Python server for testing
+- **🔧 Fixed**: Dependency resolution issues
+- **📝 Updated**: Repository name to iso8583TCPSocketClient
 
 ## 🤝 Contributing
 
