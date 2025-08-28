@@ -2,7 +2,7 @@
 
 All notable changes to the iso8583TCPSocket library will be documented in this file.
 
-## [1.0.0] - 2024-08-27
+## [1.0.0] - 2025-08-28
 
 ### 🎉 Initial Release
 
