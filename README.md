@@ -13,6 +13,8 @@ A lightweight, high-performance ISO-8583 TCP socket library for Android with com
 - **📱 API 21+ Support**: Compatible with Android 5.0 and above
 - **⚡ Lightweight**: Minimal dependencies and memory footprint
 - **🎯 Production-Ready**: Tested with real-world scenarios
+ - **🔁 Auto-close Control**: Choose to auto-close after response or keep connection open
+ - **🚀 Performance Tuning**: tcpNoDelay, keepAlive, buffer reuse, NIO select interval, and more
 
 ## 📦 Installation
 
@@ -34,7 +36,7 @@ Then add the dependency to your app's `build.gradle`:
 
 ```gradle
 dependencies {
-    implementation 'com.github.Miaadrajabi:iso8583TCPSocketClient:1.0.0'
+    implementation 'com.github.Miaadrajabi:iso8583TCPSocketClient:1.1.0'
 }
 ```
 
@@ -44,7 +46,7 @@ dependencies {
 <dependency>
     <groupId>com.github.Miaadrajabi</groupId>
     <artifactId>iso8583TCPSocketClient</artifactId>
-    <version>1.0.0</version>
+    <version>1.1.0</version>
 </dependency>
 ```
 
@@ -57,6 +59,7 @@ dependencies {
 IsoConfig config = new IsoConfig.Builder("192.168.1.100", 8583)
     .connectTimeout(30000)
     .readTimeout(30000)
+    .autoCloseAfterResponse(true) // default: close after response
     .connectionMode(ConnectionMode.BLOCKING)
     .build();
 
@@ -95,6 +98,7 @@ RetryConfig retryConfig = new RetryConfig.Builder()
 IsoConfig config = new IsoConfig.Builder("192.168.1.100", 8583)
     .connectTimeout(30000)
     .readTimeout(30000)
+    .autoCloseAfterResponse(false) // keep connection open for multiple requests
     .retryConfig(retryConfig)
     .connectionMode(ConnectionMode.BLOCKING)
     .build();
@@ -123,6 +127,9 @@ ConnectionStatus status = client.getConnectionStatus();
 System.out.println("Connected: " + status.isConnected());
 System.out.println("Can send: " + status.canSend());
 System.out.println("Health: " + status.isHealthy());
+
+// Performance status (applied via IsoConfig)
+// - tcpNoDelay, keepAlive, buffer sizes, reuseBuffers, nioSelectInterval, enableHotPathLogs
 ```
 
 ### With Retry Callback
@@ -218,6 +225,7 @@ System.out.println(status.toDetailedString());
 ```java
 IsoConfig config = new IsoConfig.Builder("192.168.1.100", 8583)
     .connectionMode(ConnectionMode.BLOCKING)
+    .performanceMode() // optional low-latency preset
     .build();
 ```
 
@@ -225,6 +233,8 @@ IsoConfig config = new IsoConfig.Builder("192.168.1.100", 8583)
 ```java
 IsoConfig config = new IsoConfig.Builder("192.168.1.100", 8583)
     .connectionMode(ConnectionMode.NON_BLOCKING)
+    .reuseBuffers(true)
+    .nioSelectIntervalMs(10)
     .build();
 ```
 
@@ -242,6 +252,21 @@ IsoClient client = new IsoClient(config, 2, ByteOrder.BIG_ENDIAN);
 
 // 4-byte length header
 IsoClient client = new IsoClient(config, 4, ByteOrder.LITTLE_ENDIAN);
+```
+
+### Performance Options
+
+```java
+IsoConfig perf = new IsoConfig.Builder(host, port)
+    .tcpNoDelay(true)
+    .keepAlive(true)
+    .sendBufferSize(64 * 1024)
+    .receiveBufferSize(64 * 1024)
+    .reuseBuffers(true)
+    .maxMessageSizeBytes(8 * 1024)
+    .nioSelectIntervalMs(10)
+    .enableHotPathLogs(false)
+    .build();
 ```
         ## 🧪 Testing & Sample App
 
@@ -317,7 +342,13 @@ com.miaad.iso8583TCPSocket/
 
 ## 🔄 Version History
 
-### v1.0.0 (Latest) - 2025-08-28
+### v1.1.0 - 2025-08-31
+- Added auto-close control via `IsoConfig.autoCloseAfterResponse(boolean)`
+- Added performance options: `tcpNoDelay`, `keepAlive`, `sendBufferSize`, `receiveBufferSize`, `reuseBuffers`, `maxMessageSizeBytes`, `nioSelectIntervalMs`, `enableHotPathLogs`
+- Added `performanceMode()` preset for low-latency configs
+- Improved engines to reuse buffers and tune NIO selector
+
+### v1.0.0 - 2025-08-28
 - **🎉 Initial Release**: Complete ISO-8583 TCP client library
 - **🔧 Dual Engine Support**: Blocking and non-blocking I/O engines
 - **📊 40+ Status Methods**: Comprehensive status checking

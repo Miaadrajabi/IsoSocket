@@ -12,6 +12,15 @@ public class IsoConfig {
     private final RetryConfig retryConfig;
     private final ConnectionMode connectionMode;
     private final boolean autoCloseAfterResponse;
+    // Performance options (all optional; defaults keep prior behavior)
+    private final boolean tcpNoDelay;
+    private final boolean keepAlive;
+    private final int sendBufferSize;
+    private final int receiveBufferSize;
+    private final boolean reuseBuffers;
+    private final int maxMessageSizeBytes;
+    private final int nioSelectIntervalMs;
+    private final boolean enableHotPathLogs;
 
     private IsoConfig(Builder builder) {
         this.host = builder.host;
@@ -22,6 +31,14 @@ public class IsoConfig {
         this.retryConfig = builder.retryConfig;
         this.connectionMode = builder.connectionMode;
         this.autoCloseAfterResponse = builder.autoCloseAfterResponse;
+        this.tcpNoDelay = builder.tcpNoDelay;
+        this.keepAlive = builder.keepAlive;
+        this.sendBufferSize = builder.sendBufferSize;
+        this.receiveBufferSize = builder.receiveBufferSize;
+        this.reuseBuffers = builder.reuseBuffers;
+        this.maxMessageSizeBytes = builder.maxMessageSizeBytes;
+        this.nioSelectIntervalMs = builder.nioSelectIntervalMs;
+        this.enableHotPathLogs = builder.enableHotPathLogs;
     }
     
     public String getHost() { return host; }
@@ -32,6 +49,14 @@ public class IsoConfig {
     public RetryConfig getRetryConfig() { return retryConfig; }
     public ConnectionMode getConnectionMode() { return connectionMode; }
     public boolean isAutoCloseAfterResponse() { return autoCloseAfterResponse; }
+    public boolean isTcpNoDelay() { return tcpNoDelay; }
+    public boolean isKeepAlive() { return keepAlive; }
+    public int getSendBufferSize() { return sendBufferSize; }
+    public int getReceiveBufferSize() { return receiveBufferSize; }
+    public boolean isReuseBuffers() { return reuseBuffers; }
+    public int getMaxMessageSizeBytes() { return maxMessageSizeBytes; }
+    public int getNioSelectIntervalMs() { return nioSelectIntervalMs; }
+    public boolean isEnableHotPathLogs() { return enableHotPathLogs; }
     
     public static class Builder {
         private String host;
@@ -42,6 +67,15 @@ public class IsoConfig {
         private RetryConfig retryConfig = RetryConfig.defaultConfig();
         private ConnectionMode connectionMode = ConnectionMode.BLOCKING; // Default to blocking
         private boolean autoCloseAfterResponse = true; // Default: close after response
+        // Performance defaults (disabled by default to preserve behavior)
+        private boolean tcpNoDelay = false;
+        private boolean keepAlive = false;
+        private int sendBufferSize = 0; // 0 or negative => leave default
+        private int receiveBufferSize = 0; // 0 or negative => leave default
+        private boolean reuseBuffers = false;
+        private int maxMessageSizeBytes = 0; // 0 => disabled/not used
+        private int nioSelectIntervalMs = 1000; // default existing behavior
+        private boolean enableHotPathLogs = true; // keep printing by default
         
         public Builder(String host, int port) {
             this.host = host;
@@ -79,6 +113,58 @@ public class IsoConfig {
          */
         public Builder autoCloseAfterResponse(boolean autoClose) {
             this.autoCloseAfterResponse = autoClose;
+            return this;
+        }
+
+        public Builder tcpNoDelay(boolean tcpNoDelay) {
+            this.tcpNoDelay = tcpNoDelay;
+            return this;
+        }
+
+        public Builder keepAlive(boolean keepAlive) {
+            this.keepAlive = keepAlive;
+            return this;
+        }
+
+        public Builder sendBufferSize(int bytes) {
+            this.sendBufferSize = bytes;
+            return this;
+        }
+
+        public Builder receiveBufferSize(int bytes) {
+            this.receiveBufferSize = bytes;
+            return this;
+        }
+
+        public Builder reuseBuffers(boolean reuseBuffers) {
+            this.reuseBuffers = reuseBuffers;
+            return this;
+        }
+
+        public Builder maxMessageSizeBytes(int bytes) {
+            this.maxMessageSizeBytes = bytes;
+            return this;
+        }
+
+        public Builder nioSelectIntervalMs(int ms) {
+            this.nioSelectIntervalMs = ms;
+            return this;
+        }
+
+        public Builder enableHotPathLogs(boolean enable) {
+            this.enableHotPathLogs = enable;
+            return this;
+        }
+
+        /**
+         * Enable a recommended low-latency configuration without removing callbacks or features.
+         */
+        public Builder performanceMode() {
+            this.tcpNoDelay = true;
+            this.keepAlive = true;
+            this.reuseBuffers = true;
+            if (this.nioSelectIntervalMs > 10) this.nioSelectIntervalMs = 10;
+            this.enableHotPathLogs = false; // callbacks remain active
             return this;
         }
 

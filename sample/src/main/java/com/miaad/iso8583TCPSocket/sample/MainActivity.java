@@ -54,7 +54,7 @@ public class MainActivity extends AppCompatActivity {
         // Host input
         hostInput = new EditText(this);
         hostInput.setHint("Host (e.g., 192.168.1.100)");
-        hostInput.setText("192.168.8.174");
+        hostInput.setText("172.20.10.3");
         mainLayout.addView(hostInput);
 
         // Port input
@@ -212,6 +212,7 @@ public class MainActivity extends AppCompatActivity {
                 IsoConfig config = new IsoConfig.Builder(host, port)
                         .connectTimeout(timeout)
                         .readTimeout(timeout)
+                        .performanceMode()
                         .autoCloseAfterResponse(false)
                         .retryConfig(retryConfig)
                         .connectionMode(connectionMode)

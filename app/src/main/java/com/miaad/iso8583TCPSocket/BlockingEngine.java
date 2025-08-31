@@ -24,6 +24,8 @@ public class BlockingEngine implements ConnectionEngine {
     private Socket socket;
     private final int lengthHeaderSize;
     private final ByteOrder byteOrder;
+    private final byte[] lengthHeaderBuffer;
+    private final byte[] headerReadBuffer;
     private volatile ConnectionState currentState = ConnectionState.DISCONNECTED;
     private final ReentrantLock operationLock = new ReentrantLock();
     private final AtomicBoolean transactionInProgress = new AtomicBoolean(false);
@@ -36,6 +38,8 @@ public class BlockingEngine implements ConnectionEngine {
     public BlockingEngine(int lengthHeaderSize, ByteOrder byteOrder) {
         this.lengthHeaderSize = lengthHeaderSize;
         this.byteOrder = byteOrder;
+        this.lengthHeaderBuffer = new byte[lengthHeaderSize];
+        this.headerReadBuffer = new byte[lengthHeaderSize];
     }
 
     @Override
@@ -90,8 +94,10 @@ public class BlockingEngine implements ConnectionEngine {
                     if (stateListener != null) {
                         stateListener.onConnectionAttemptStarted(config.getHost(), config.getPort(), attempt + 1, maxAttempts);
                     }
-                    System.out.println("Connecting to " + config.getHost() + ":" + config.getPort() + 
-                                     " (attempt " + (attempt + 1) + "/" + maxAttempts + ") [BLOCKING ENGINE]");
+                    if (config == null || config.isEnableHotPathLogs()) {
+                        System.out.println("Connecting to " + config.getHost() + ":" + config.getPort() + 
+                                         " (attempt " + (attempt + 1) + "/" + maxAttempts + ") [BLOCKING ENGINE]");
+                    }
 
                     // Host resolution
                     changeState(ConnectionState.RESOLVING_HOST, "Resolving " + config.getHost());
@@ -124,7 +130,19 @@ public class BlockingEngine implements ConnectionEngine {
                             socket.getRemoteSocketAddress().toString(), tcpConnectTime);
                     }
                     
-                    System.out.println("Connected successfully!");
+                    if (config == null || config.isEnableHotPathLogs()) {
+                        System.out.println("Connected successfully!");
+                    }
+
+                    // Apply socket options for performance
+                    try {
+                        if (config.isTcpNoDelay()) socket.setTcpNoDelay(true);
+                        if (config.isKeepAlive()) socket.setKeepAlive(true);
+                        if (config.getSendBufferSize() > 0) socket.setSendBufferSize(config.getSendBufferSize());
+                        if (config.getReceiveBufferSize() > 0) socket.setReceiveBufferSize(config.getReceiveBufferSize());
+                        socket.setPerformancePreferences(0, 1, 2);
+                    } catch (Exception ignored) {
+                    }
 
                     if (config.isUseTls()) {
                         changeState(ConnectionState.TLS_HANDSHAKING, "Performing TLS handshake");
@@ -133,7 +151,9 @@ public class BlockingEngine implements ConnectionEngine {
                         }
                         
                         long tlsStart = System.currentTimeMillis();
-                        System.out.println("Starting TLS handshake...");
+                        if (config == null || config.isEnableHotPathLogs()) {
+                            System.out.println("Starting TLS handshake...");
+                        }
                         SSLSocketFactory factory = (SSLSocketFactory) SSLSocketFactory.getDefault();
                         socket = factory.createSocket(socket, config.getHost(), config.getPort(), true);
                         ((SSLSocket) socket).startHandshake();
@@ -147,7 +167,9 @@ public class BlockingEngine implements ConnectionEngine {
                                 sslSocket.getSession().getProtocol(),
                                 sslSocket.getSession().getCipherSuite(), tlsTime);
                         }
-                        System.out.println("TLS handshake completed!");
+                        if (config == null || config.isEnableHotPathLogs()) {
+                            System.out.println("TLS handshake completed!");
+                        }
                     }
 
                     changeState(ConnectionState.CONNECTED, "Connection established successfully");
@@ -167,7 +189,9 @@ public class BlockingEngine implements ConnectionEngine {
                         stateListener.onError(e, currentState, "Connection attempt " + (attempt + 1) + " failed");
                     }
                     
-                    System.err.println("Connection attempt " + (attempt + 1) + " failed: " + e.getClass().getSimpleName() + " - " + e.getMessage());
+                    if (config == null || config.isEnableHotPathLogs()) {
+                        System.err.println("Connection attempt " + (attempt + 1) + " failed: " + e.getClass().getSimpleName() + " - " + e.getMessage());
+                    }
 
                     if (socket != null) {
                         try { socket.close(); } catch (IOException ignored) {}
@@ -191,7 +215,9 @@ public class BlockingEngine implements ConnectionEngine {
             if (stateListener != null) {
                 stateListener.onRetryExhausted(maxAttempts, lastException);
             }
-            System.err.println("All connection attempts failed");
+            if (config == null || config.isEnableHotPathLogs()) {
+                System.err.println("All connection attempts failed");
+            }
             if (lastException instanceof IOException) {
                 throw (IOException) lastException;
             } else {
@@ -253,18 +279,17 @@ public class BlockingEngine implements ConnectionEngine {
         }
         
         InputStream in = socket.getInputStream();
-        byte[] headerBuffer = new byte[lengthHeaderSize];
         int headerRead = 0;
         while (headerRead < lengthHeaderSize) {
-            int n = in.read(headerBuffer, headerRead, lengthHeaderSize - headerRead);
+            int n = in.read(headerReadBuffer, headerRead, lengthHeaderSize - headerRead);
             if (n < 0) throw new IOException("Connection closed while reading header");
             headerRead += n;
         }
         
-        int responseLength = parseLength(headerBuffer);
+        int responseLength = parseLength(headerReadBuffer);
         changeState(ConnectionState.HEADER_RECEIVED, "Header received");
         if (stateListener != null) {
-            stateListener.onResponseHeaderReceived(headerBuffer, responseLength, 
+            stateListener.onResponseHeaderReceived(headerReadBuffer, responseLength, 
                 System.currentTimeMillis() - startTime);
         }
         
@@ -471,22 +496,21 @@ public class BlockingEngine implements ConnectionEngine {
         if (stateListener != null) {
             stateListener.onStateChanged(oldState, newState, details);
         }
-        if (stateListener != null) {
+        if (stateListener != null && (config == null || config.isEnableHotPathLogs())) {
             stateListener.onLog("INFO", "State changed: " + oldState + " -> " + newState, details);
         }
     }
 
     private byte[] createLengthHeader(int length) {
-        ByteBuffer buffer = ByteBuffer.allocate(lengthHeaderSize);
+        ByteBuffer buffer = ByteBuffer.wrap(lengthHeaderBuffer);
         buffer.order(byteOrder);
-        
+        buffer.clear();
         if (lengthHeaderSize == 2) {
             buffer.putShort((short) (length & 0xFFFF));
         } else {
             buffer.putInt(length);
         }
-        
-        return buffer.array();
+        return lengthHeaderBuffer;
     }
 
     private int parseLength(byte[] header) {
