@@ -11,6 +11,7 @@ public class IsoConfig {
     private final boolean useTls;
     private final RetryConfig retryConfig;
     private final ConnectionMode connectionMode;
+    private final boolean autoCloseAfterResponse;
 
     private IsoConfig(Builder builder) {
         this.host = builder.host;
@@ -20,6 +21,7 @@ public class IsoConfig {
         this.useTls = builder.useTls;
         this.retryConfig = builder.retryConfig;
         this.connectionMode = builder.connectionMode;
+        this.autoCloseAfterResponse = builder.autoCloseAfterResponse;
     }
     
     public String getHost() { return host; }
@@ -29,6 +31,7 @@ public class IsoConfig {
     public boolean isUseTls() { return useTls; }
     public RetryConfig getRetryConfig() { return retryConfig; }
     public ConnectionMode getConnectionMode() { return connectionMode; }
+    public boolean isAutoCloseAfterResponse() { return autoCloseAfterResponse; }
     
     public static class Builder {
         private String host;
@@ -38,6 +41,7 @@ public class IsoConfig {
         private boolean useTls = false;
         private RetryConfig retryConfig = RetryConfig.defaultConfig();
         private ConnectionMode connectionMode = ConnectionMode.BLOCKING; // Default to blocking
+        private boolean autoCloseAfterResponse = true; // Default: close after response
         
         public Builder(String host, int port) {
             this.host = host;
@@ -66,6 +70,15 @@ public class IsoConfig {
 
         public Builder connectionMode(ConnectionMode connectionMode) {
             this.connectionMode = connectionMode;
+            return this;
+        }
+
+        /**
+         * Configure whether to automatically close the connection after receiving a response.
+         * Default is true for backward compatibility.
+         */
+        public Builder autoCloseAfterResponse(boolean autoClose) {
+            this.autoCloseAfterResponse = autoClose;
             return this;
         }
 

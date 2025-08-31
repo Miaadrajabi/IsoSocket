@@ -6,7 +6,7 @@ import time
 import sys
 
 # Configurable delay (seconds)
-RESPONSE_DELAY = 10.0  # Default 10 seconds
+RESPONSE_DELAY = 1.0  # Default 10 seconds
 
 def handle_client(client_socket, addr):
     print(f"Client connected from {addr}")

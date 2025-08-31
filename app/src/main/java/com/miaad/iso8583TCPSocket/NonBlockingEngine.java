@@ -336,8 +336,10 @@ public class NonBlockingEngine implements ConnectionEngine {
             stateListener.onResponseProcessingCompleted(0, responseTime);
         }
         
-        // Auto-close after transaction
-        close();
+        // Auto-close after transaction (configurable)
+        if (config != null && config.isAutoCloseAfterResponse()) {
+            close();
+        }
         
         return new IsoResponse(dataBuffer.array(), responseTime);
     }
