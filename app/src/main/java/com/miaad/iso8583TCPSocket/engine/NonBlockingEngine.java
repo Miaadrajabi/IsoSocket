@@ -30,6 +30,8 @@ public class NonBlockingEngine implements ConnectionEngine {
     private Selector selector;
     private final int lengthHeaderSize;
     private final ByteOrder byteOrder;
+    private ByteBuffer headerBuffer;
+    private ByteBuffer dataBuffer;
     private volatile ConnectionState currentState = ConnectionState.DISCONNECTED;
     private final ReentrantLock operationLock = new ReentrantLock();
     private final AtomicBoolean transactionInProgress = new AtomicBoolean(false);
@@ -42,6 +44,7 @@ public class NonBlockingEngine implements ConnectionEngine {
     public NonBlockingEngine(int lengthHeaderSize, ByteOrder byteOrder) {
         this.lengthHeaderSize = lengthHeaderSize;
         this.byteOrder = byteOrder;
+        this.headerBuffer = ByteBuffer.allocate(lengthHeaderSize);
     }
 
     @Override
@@ -93,8 +96,10 @@ public class NonBlockingEngine implements ConnectionEngine {
                     if (stateListener != null) {
                         stateListener.onConnectionAttemptStarted(config.getHost(), config.getPort(), attempt + 1, maxAttempts);
                     }
-                    System.out.println("Connecting to " + config.getHost() + ":" + config.getPort() + 
-                                     " (attempt " + (attempt + 1) + "/" + maxAttempts + ") [NON-BLOCKING ENGINE]");
+                    if (config == null || config.isEnableHotPathLogs()) {
+                        System.out.println("Connecting to " + config.getHost() + ":" + config.getPort() + 
+                                         " (attempt " + (attempt + 1) + "/" + maxAttempts + ") [NON-BLOCKING ENGINE]");
+                    }
 
                     // Initialize NIO components
                     changeState(ConnectionState.RESOLVING_HOST, "Initializing NIO components");
@@ -182,7 +187,21 @@ public class NonBlockingEngine implements ConnectionEngine {
                         stateListener.onTcpConnectionCompleted(localAddress, remoteAddress, tcpConnectTime);
                     }
                     
-                    System.out.println("NIO Connected successfully!");
+                    if (config == null || config.isEnableHotPathLogs()) {
+                        System.out.println("NIO Connected successfully!");
+                    }
+
+                    // Apply socket options
+                    try {
+                        if (channel != null) {
+                            if (config.isTcpNoDelay()) channel.socket().setTcpNoDelay(true);
+                            if (config.isKeepAlive()) channel.socket().setKeepAlive(true);
+                            if (config.getSendBufferSize() > 0) channel.socket().setSendBufferSize(config.getSendBufferSize());
+                            if (config.getReceiveBufferSize() > 0) channel.socket().setReceiveBufferSize(config.getReceiveBufferSize());
+                            channel.socket().setPerformancePreferences(0, 1, 2);
+                        }
+                    } catch (Exception ignored) {
+                    }
 
                     // Note: TLS support would require SSLEngine for NIO
                     if (config.isUseTls()) {
@@ -205,7 +224,9 @@ public class NonBlockingEngine implements ConnectionEngine {
                         stateListener.onError(e, currentState, "NIO connection attempt " + (attempt + 1) + " failed");
                     }
                     
-                    System.err.println("NIO Connection attempt " + (attempt + 1) + " failed: " + e.getClass().getSimpleName() + " - " + e.getMessage());
+                    if (config == null || config.isEnableHotPathLogs()) {
+                        System.err.println("NIO Connection attempt " + (attempt + 1) + " failed: " + e.getClass().getSimpleName() + " - " + e.getMessage());
+                    }
 
                     // Cleanup
                     cleanupConnection();
@@ -227,7 +248,9 @@ public class NonBlockingEngine implements ConnectionEngine {
             if (stateListener != null) {
                 stateListener.onRetryExhausted(maxAttempts, lastException);
             }
-            System.err.println("All NIO connection attempts failed");
+            if (config == null || config.isEnableHotPathLogs()) {
+                System.err.println("All NIO connection attempts failed");
+            }
             if (lastException instanceof IOException) {
                 throw (IOException) lastException;
             } else {
@@ -304,8 +327,17 @@ public class NonBlockingEngine implements ConnectionEngine {
             stateListener.onResponseHeaderReadStarted(lengthHeaderSize);
         }
         
-        ByteBuffer headerBuffer = ByteBuffer.allocate(lengthHeaderSize);
-        readFullBuffer(headerBuffer, config.getReadTimeoutMs());
+        if (config.isReuseBuffers()) {
+            if (headerBuffer == null || headerBuffer.capacity() < lengthHeaderSize) {
+                headerBuffer = ByteBuffer.allocateDirect(lengthHeaderSize);
+            }
+            headerBuffer.clear();
+            readFullBuffer(headerBuffer, config.getReadTimeoutMs());
+        } else {
+            ByteBuffer hb = ByteBuffer.allocate(lengthHeaderSize);
+            readFullBuffer(hb, config.getReadTimeoutMs());
+            headerBuffer = hb;
+        }
         
         headerBuffer.flip();
         int responseLength = parseLength(headerBuffer.array());
@@ -322,8 +354,21 @@ public class NonBlockingEngine implements ConnectionEngine {
             stateListener.onResponseDataReadStarted(responseLength);
         }
         
-        ByteBuffer dataBuffer = ByteBuffer.allocate(responseLength);
-        readFullBuffer(dataBuffer, config.getReadTimeoutMs());
+        if (config.isReuseBuffers()) {
+            int need = responseLength;
+            if (config.getMaxMessageSizeBytes() > 0) {
+                need = Math.min(responseLength, config.getMaxMessageSizeBytes());
+            }
+            if (dataBuffer == null || dataBuffer.capacity() < need) {
+                dataBuffer = ByteBuffer.allocateDirect(need);
+            }
+            dataBuffer.clear();
+            dataBuffer.limit(responseLength);
+            readFullBuffer(dataBuffer, config.getReadTimeoutMs());
+        } else {
+            dataBuffer = ByteBuffer.allocate(responseLength);
+            readFullBuffer(dataBuffer, config.getReadTimeoutMs());
+        }
         
         changeState(ConnectionState.DATA_RECEIVED, "NIO data received");
         if (stateListener != null) {
@@ -344,8 +389,10 @@ public class NonBlockingEngine implements ConnectionEngine {
             stateListener.onResponseProcessingCompleted(0, responseTime);
         }
         
-        // Auto-close after transaction
-        close();
+        // Auto-close after transaction (configurable)
+        if (config != null && config.isAutoCloseAfterResponse()) {
+            close();
+        }
         
         return new IsoResponse(dataBuffer.array(), responseTime);
     }
@@ -553,7 +600,7 @@ public class NonBlockingEngine implements ConnectionEngine {
         if (stateListener != null) {
             stateListener.onStateChanged(oldState, newState, details);
         }
-        if (stateListener != null) {
+        if (stateListener != null && (config == null || config.isEnableHotPathLogs())) {
             stateListener.onLog("INFO", "NIO State changed: " + oldState + " -> " + newState, details);
         }
     }
